@@ -22,14 +22,14 @@ Denna utveckling skapar möjligheter för mera autonomi och själv-förändrande
 Och varför är Claude Code med Opus 4.5/4.6 så mycket bättre än andra kod-agenter? Förmodligen har Anthropic ansträngt sig mer än andra för att AI-modellen ska vara bra på just källkod, tex genom post-träning-steg där förstärkningsinlärning (Reinforcement Learning) används på testfrågor där man kan skapa verifierbara belöningssignaler (Verifiable Rewards).
 
 
-## Reading list
+### Läslista / Reading list
 
 * Semianalysis, [Claude Code is the inflection point](https://newsletter.semianalysis.com/p/claude-code-is-the-inflection-point)
 * Steve Yegge, [The AI Vampire](https://steve-yegge.medium.com/the-ai-vampire-eda6e4f07163)
 * Symbolica / Agentica, [Beyond Code Mode](https://www.symbolica.ai/agentica)
 * Code World Models, Meta FAIR, [arXiv:2510.02387](https://arxiv.org/abs/2510.02387)
 
-Version in english
+### Version in english
 
 There's increasing talk that November 24, 2025 will be counted as a historic date. That's when Anthropic released the AI model Opus 4.5. And when used together with the Claude Code agent, a threshold was crossed, at least for software development, where the quality became noticeably improved.
 
