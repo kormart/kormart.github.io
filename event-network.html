@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Event Network Visualization</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0b0e17;
+    color: #e8ecf5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+  }
+  #header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 22px;
+    background: linear-gradient(to bottom, rgba(11,14,23,0.95), rgba(11,14,23,0));
+    z-index: 10;
+    pointer-events: none;
+  }
+  #header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  #header p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  #panel {
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    background: rgba(20,24,36,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    max-width: 280px;
+  }
+  #panel .legend-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+  }
+  #panel .swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(20,24,36,0.95);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.15s;
+    max-width: 220px;
+  }
+  #tooltip .t-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  #tooltip .t-meta {
+    opacity: 0.7;
+    font-size: 11px;
+  }
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>Event Network</h1>
+  <p>Chains of events that merge, branch, and separate over time</p>
+</div>
+
+<div id="panel">
+  <div style="margin-bottom:8px;font-weight:600;">Chains</div>
+  <div id="legend"></div>
+  <div style="margin-top:10px;opacity:0.6;font-size:11px;">
+    Hover over a node to see details. Time flows left to right.
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+(function() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const tooltip = document.getElementById('tooltip');
+  const legendEl = document.getElementById('legend');
+
+  let dpr = window.devicePixelRatio || 1;
+  let W = 0, H = 0;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    layout();
+  }
+
+  const chains = [
+    { id: 'A', name: 'Investigation', color: '#6ec1ff' },
+    { id: 'B', name: 'Diplomacy',     color: '#a4f0a4' },
+    { id: 'C', name: 'Economy',       color: '#ffd166' },
+    { id: 'D', name: 'Conflict',      color: '#ff7b9c' },
+    { id: 'E', name: 'Discovery',     color: '#c7a4ff' },
+  ];
+
+  // Each event has: id, t (time slot 0..12), chains (which lanes it sits on), title, desc
+  const events = [
+    { id: 'e1',  t: 0,  chains: ['A'],         title: 'Anomalous signal detected',     desc: 'A faint pattern surfaces in routine telemetry.' },
+    { id: 'e2',  t: 0,  chains: ['B'],         title: 'Trade summit opens',            desc: 'Three regional powers convene.' },
+    { id: 'e3',  t: 0,  chains: ['C'],         title: 'Currency reform proposed',      desc: 'Council drafts the first tariff package.' },
+    { id: 'e4',  t: 1,  chains: ['A'],         title: 'Field team dispatched',         desc: 'Investigators travel to the source region.' },
+    { id: 'e5',  t: 1,  chains: ['D'],         title: 'Border skirmish reported',      desc: 'Patrols exchange fire near the ridge.' },
+    { id: 'e6',  t: 2,  chains: ['B','C'],     title: 'Trade pact signed',             desc: 'Diplomacy and economic chains merge.' },
+    { id: 'e7',  t: 2,  chains: ['A'],         title: 'Site secured',                  desc: 'Perimeter established around the anomaly.' },
+    { id: 'e8',  t: 3,  chains: ['A','D'],     title: 'Artifact contested',            desc: 'Military presence intersects the investigation.' },
+    { id: 'e9',  t: 3,  chains: ['B','C'],     title: 'Joint commission formed',       desc: 'Combined trade-diplomacy body continues.' },
+    { id: 'e10', t: 4,  chains: ['A'],         title: 'Lab analysis begins',           desc: 'Investigation chain separates from conflict.' },
+    { id: 'e11', t: 4,  chains: ['D'],         title: 'Garrison reinforced',           desc: 'Conflict chain hardens into standoff.' },
+    { id: 'e12', t: 4,  chains: ['B','C'],     title: 'Resource quota set',            desc: 'Combined chain issues binding allocations.' },
+    { id: 'e13', t: 5,  chains: ['A','E'],     title: 'Discovery announced',           desc: 'Investigation spawns the discovery chain.' },
+    { id: 'e14', t: 5,  chains: ['D'],         title: 'Hostilities declared',          desc: 'Conflict escalates independently.' },
+    { id: 'e15', t: 5,  chains: ['B'],         title: 'Trade pact dissolves',          desc: 'Diplomacy and economy split apart.' },
+    { id: 'e16', t: 5,  chains: ['C'],         title: 'Markets destabilize',           desc: 'Economy chain continues alone.' },
+    { id: 'e17', t: 6,  chains: ['A'],         title: 'Replication confirmed',         desc: 'Independent labs verify the result.' },
+    { id: 'e18', t: 6,  chains: ['E'],         title: 'New principle published',       desc: 'Discovery propagates outward.' },
+    { id: 'e19', t: 6,  chains: ['B','D'],     title: 'Ceasefire negotiated',          desc: 'Diplomacy intersects the conflict chain.' },
+    { id: 'e20', t: 6,  chains: ['C'],         title: 'Emergency tariffs',             desc: 'Economy continues under stress.' },
+    { id: 'e21', t: 7,  chains: ['B'],         title: 'Diplomats withdraw',            desc: 'Diplomacy separates again.' },
+    { id: 'e22', t: 7,  chains: ['D'],         title: 'Truce holds',                   desc: 'Conflict chain cools.' },
+    { id: 'e23', t: 7,  chains: ['A','E'],     title: 'Cross-team summit',             desc: 'Investigation and discovery convene jointly.' },
+    { id: 'e24', t: 7,  chains: ['C'],         title: 'Markets recover',               desc: 'Economy stabilizes.' },
+    { id: 'e25', t: 8,  chains: ['A','B','E'], title: 'Public disclosure',             desc: 'Three chains converge into a single event.' },
+    { id: 'e26', t: 8,  chains: ['C','D'],     title: 'Sanctions lifted',              desc: 'Economy and conflict chains merge briefly.' },
+    { id: 'e27', t: 9,  chains: ['A'],         title: 'Long-term study chartered',     desc: 'Investigation chain continues alone.' },
+    { id: 'e28', t: 9,  chains: ['B'],         title: 'New treaty drafted',            desc: 'Diplomacy resumes independently.' },
+    { id: 'e29', t: 9,  chains: ['E'],         title: 'Open research consortium',      desc: 'Discovery chain spreads.' },
+    { id: 'e30', t: 9,  chains: ['C'],         title: 'Investment surge',              desc: 'Economy moves on its own trajectory.' },
+    { id: 'e31', t: 9,  chains: ['D'],         title: 'Demobilization begins',         desc: 'Conflict chain winds down.' },
+    { id: 'e32', t: 10, chains: ['A','E'],     title: 'Field instruments deployed',    desc: 'Investigation and discovery cooperate again.' },
+    { id: 'e33', t: 10, chains: ['B','C'],     title: 'Common market reopens',         desc: 'Diplomacy and economy reunite.' },
+    { id: 'e34', t: 10, chains: ['D'],         title: 'Last garrison stands down',     desc: 'Conflict chain nears resolution.' },
+    { id: 'e35', t: 11, chains: ['A','B','C','D','E'], title: 'World assembly',        desc: 'All five chains merge in a single event.' },
+    { id: 'e36', t: 12, chains: ['A'],         title: 'Findings archived',             desc: 'Investigation chain ends.' },
+    { id: 'e37', t: 12, chains: ['B'],         title: 'Charter ratified',              desc: 'Diplomacy concludes.' },
+    { id: 'e38', t: 12, chains: ['C'],         title: 'Stable currency adopted',       desc: 'Economy concludes.' },
+    { id: 'e39', t: 12, chains: ['D'],         title: 'Peace memorialized',            desc: 'Conflict chain ends.' },
+    { id: 'e40', t: 12, chains: ['E'],         title: 'Era of inquiry begins',         desc: 'Discovery chain ends, opening forward.' },
+  ];
+
+  // Build chain edges: for each chain, link consecutive events that contain that chain.
+  const edges = [];
+  chains.forEach(c => {
+    const seq = events.filter(e => e.chains.includes(c.id))
+                      .sort((a, b) => a.t - b.t);
+    for (let i = 0; i < seq.length - 1; i++) {
+      edges.push({ from: seq[i].id, to: seq[i+1].id, chain: c.id, color: c.color });
+    }
+  });
+
+  // Layout: x by time, y by averaged chain lane.
+  const chainLaneIndex = {};
+  chains.forEach((c, i) => chainLaneIndex[c.id] = i);
+
+  const positions = {};
+
+  function layout() {
+    const padX = 80;
+    const padTop = 70;
+    const padBottom = 60;
+    const tMax = Math.max(...events.map(e => e.t));
+    const usableW = W - padX * 2;
+    const usableH = H - padTop - padBottom;
+    const laneCount = chains.length;
+
+    events.forEach(e => {
+      const x = padX + (e.t / tMax) * usableW;
+      const avgLane = e.chains.reduce((s, id) => s + chainLaneIndex[id], 0) / e.chains.length;
+      const y = padTop + (avgLane / (laneCount - 1)) * usableH;
+      positions[e.id] = { x, y, r: 6 + Math.min(e.chains.length, 5) * 2 };
+    });
+  }
+
+  // Render legend
+  chains.forEach(c => {
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    row.innerHTML = `<div class="swatch" style="background:${c.color}"></div>${c.name}`;
+    legendEl.appendChild(row);
+  });
+
+  let hovered = null;
+  let mouseX = 0, mouseY = 0;
+  let time0 = performance.now();
+
+  function eventById(id) { return events.find(e => e.id === id); }
+
+  function draw() {
+    const t = (performance.now() - time0) / 1000;
+    ctx.clearRect(0, 0, W, H);
+
+    // Background grid: time tick lines
+    const tMax = Math.max(...events.map(e => e.t));
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= tMax; i++) {
+      const x = 80 + (i / tMax) * (W - 160);
+      ctx.beginPath();
+      ctx.moveTo(x, 60);
+      ctx.lineTo(x, H - 50);
+      ctx.stroke();
+    }
+
+    // Time axis label
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '11px -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('start', 80, H - 30);
+    ctx.textAlign = 'right';
+    ctx.fillText('end →', W - 80, H - 30);
+
+    // Edges (curved bezier between events)
+    edges.forEach(edge => {
+      const a = positions[edge.from];
+      const b = positions[edge.to];
+      if (!a || !b) return;
+
+      const isActive = hovered && (hovered.id === edge.from || hovered.id === edge.to);
+      const isDim = hovered && !isActive;
+
+      // Animated dash offset for flow effect
+      const dashOffset = -(t * 30) % 18;
+
+      ctx.strokeStyle = edge.color;
+      ctx.globalAlpha = isDim ? 0.12 : (isActive ? 1 : 0.55);
+      ctx.lineWidth = isActive ? 3 : 2;
+      ctx.setLineDash([10, 8]);
+      ctx.lineDashOffset = dashOffset;
+
+      const cx1 = a.x + (b.x - a.x) * 0.5;
+      const cy1 = a.y;
+      const cx2 = a.x + (b.x - a.x) * 0.5;
+      const cy2 = b.y;
+
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, b.x, b.y);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // Nodes
+    events.forEach(e => {
+      const p = positions[e.id];
+      if (!p) return;
+
+      const isHover = hovered && hovered.id === e.id;
+      const dim = hovered && !isHover && !edges.some(ed =>
+        (ed.from === hovered.id && ed.to === e.id) ||
+        (ed.to === hovered.id && ed.from === e.id)
+      );
+
+      // Multi-chain nodes: render as pie
+      const r = p.r * (isHover ? 1.35 : 1);
+      const cs = e.chains;
+
+      if (cs.length === 1) {
+        const c = chains.find(c => c.id === cs[0]);
+        ctx.fillStyle = c.color;
+        ctx.globalAlpha = dim ? 0.25 : 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const slice = (Math.PI * 2) / cs.length;
+        cs.forEach((cid, i) => {
+          const c = chains.find(c => c.id === cid);
+          ctx.fillStyle = c.color;
+          ctx.globalAlpha = dim ? 0.25 : 1;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.arc(p.x, p.y, r, -Math.PI/2 + i*slice, -Math.PI/2 + (i+1)*slice);
+          ctx.closePath();
+          ctx.fill();
+        });
+      }
+
+      // Outline
+      ctx.globalAlpha = dim ? 0.3 : 1;
+      ctx.strokeStyle = isHover ? '#ffffff' : 'rgba(11,14,23,0.9)';
+      ctx.lineWidth = isHover ? 2 : 1.5;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Glow on merge nodes (>=3 chains)
+      if (cs.length >= 3) {
+        ctx.globalAlpha = (dim ? 0.15 : 0.5) * (0.7 + 0.3 * Math.sin(t * 2 + e.t));
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r + 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  function pickEvent(mx, my) {
+    let best = null;
+    let bestDist = Infinity;
+    events.forEach(e => {
+      const p = positions[e.id];
+      if (!p) return;
+      const dx = mx - p.x, dy = my - p.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < p.r + 4 && d < bestDist) {
+        best = e;
+        bestDist = d;
+      }
+    });
+    return best;
+  }
+
+  canvas.addEventListener('mousemove', (ev) => {
+    mouseX = ev.clientX;
+    mouseY = ev.clientY;
+    const e = pickEvent(mouseX, mouseY);
+    hovered = e;
+    if (e) {
+      const chainNames = e.chains.map(id => chains.find(c => c.id === id).name).join(', ');
+      tooltip.innerHTML = `
+        <div class="t-title">${e.title}</div>
+        <div>${e.desc}</div>
+        <div class="t-meta" style="margin-top:4px;">Chains: ${chainNames} · t=${e.t}</div>
+      `;
+      tooltip.style.opacity = '1';
+      const tx = Math.min(mouseX + 14, W - 240);
+      const ty = Math.min(mouseY + 14, H - 90);
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+      canvas.style.cursor = 'pointer';
+    } else {
+      tooltip.style.opacity = '0';
+      canvas.style.cursor = 'default';
+    }
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    hovered = null;
+    tooltip.style.opacity = '0';
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+</script>
+</body>
+</html>
