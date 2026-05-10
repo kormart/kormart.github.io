@@ -3,418 +3,850 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Event Network Visualization</title>
+<title>Event Network — Reversible Workflow</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #080f1a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    padding: 20px;
-  }
-  header {
-    text-align: center;
-    margin-bottom: 24px;
-  }
-  h1 {
-    color: #e2e8f0;
-    font-size: 1.5em;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  p.subtitle {
-    color: #4a5568;
-    font-size: 0.8em;
-    margin-top: 6px;
-    letter-spacing: 0.04em;
-  }
-  canvas {
-    border-radius: 12px;
-    max-width: 100%;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.6);
-  }
-  footer {
-    margin-top: 16px;
-    color: #2d3748;
-    font-size: 0.72em;
-    letter-spacing: 0.05em;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #050b14;
+  color: #e2e8f0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 24px;
+  gap: 14px;
+}
+
+.header {
+  width: 100%;
+  max-width: 1220px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.title-area h1 {
+  font-size: 1.15em;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #f1f5f9;
+}
+.title-area p {
+  font-size: 0.73em;
+  color: #475569;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+}
+
+.controls { display: flex; gap: 7px; flex-wrap: wrap; }
+
+button {
+  padding: 6px 15px;
+  border: 1px solid #1e3a5f;
+  background: #0a1628;
+  color: #94a3b8;
+  border-radius: 6px;
+  font-size: 0.76em;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+button:hover           { border-color: #3b82f6; color: #e2e8f0; background: #0f2040; }
+button.primary         { border-color: #3b82f6; color: #93c5fd; }
+button.primary:hover   { background: #1e3a5f; }
+button.danger:hover    { border-color: #f87171; color: #fca5a5; background: #2d0f0f; }
+button:disabled        { opacity: 0.35; cursor: not-allowed; }
+
+canvas {
+  display: block;
+  border-radius: 10px;
+  max-width: 100%;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.65);
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #0f1e30;
+  border: 1px solid #1e3a5f;
+  border-radius: 8px;
+  padding: 10px 13px;
+  min-width: 148px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+  z-index: 200;
+  transition: opacity 0.1s;
+}
+.tooltip.hidden { opacity: 0; pointer-events: none; }
+.tt-name   { font-size: 0.84em; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+.tt-state  { font-size: 0.77em; margin-bottom: 3px; }
+.tt-action { font-size: 0.71em; color: #60a5fa; border-top: 1px solid #1e2d3d; padding-top: 5px; margin-top: 5px; }
+
+/* Footer */
+.footer {
+  width: 100%;
+  max-width: 1220px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.legend {
+  background: #0a1628;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 9px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.legend-title {
+  font-size: 0.68em;
+  color: #334155;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.71em;
+  color: #64748b;
+}
+.legend-pip {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  border: 1.5px solid currentColor;
+  flex-shrink: 0;
+}
+
+.log {
+  background: #0a1628;
+  border: 1px solid #1e2d3d;
+  border-radius: 8px;
+  padding: 9px 14px;
+  flex: 1;
+  min-width: 200px;
+  overflow: hidden;
+}
+.log-title {
+  display: block;
+  font-size: 0.68em;
+  color: #334155;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+#log-entries { display: flex; flex-direction: column; gap: 3px; }
+.log-entry {
+  display: flex; gap: 8px;
+  font-size: 0.7em; line-height: 1.4;
+}
+.log-t    { color: #1e3a5f; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.log-info     { color: #4b6278; }
+.log-success  { color: #4ade80; }
+.log-error    { color: #f87171; }
+.log-warn     { color: #fbbf24; }
+.log-rollback { color: #fb923c; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Event Network</h1>
-  <p class="subtitle">Hover a node to trace its connections &mdash; Order Processing Pipeline</p>
-</header>
+
+<div class="header">
+  <div class="title-area">
+    <h1>Event Network</h1>
+    <p>Reversible workflow &mdash; click a node to run it or initiate rollback</p>
+  </div>
+  <div class="controls">
+    <button id="btn-step">Step</button>
+    <button id="btn-run-all" class="primary">Run All</button>
+    <button id="btn-fault" class="danger">Inject Fault</button>
+    <button id="btn-reset">Reset</button>
+  </div>
+</div>
+
 <canvas id="canvas"></canvas>
-<footer>MERGE &nbsp;&#x25C6;&nbsp; SPLIT &nbsp;&#x25C6;&nbsp; CHAIN</footer>
+<div class="tooltip hidden" id="tooltip"></div>
+
+<div class="footer">
+  <div class="legend">
+    <span class="legend-title">States</span>
+    <div class="legend-item"><span class="legend-pip" style="color:#374151"></span>Idle</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#3b82f6"></span>Pending</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#60a5fa"></span>Running</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#4ade80"></span>Completed</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#f87171"></span>Failed</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#f97316"></span>Rolling Back</div>
+    <div class="legend-item"><span class="legend-pip" style="color:#818cf8"></span>Rolled Back</div>
+  </div>
+  <div class="log">
+    <span class="log-title">Event Log</span>
+    <div id="log-entries"></div>
+  </div>
+</div>
 
 <script>
+// ── Canvas setup ──────────────────────────────────────────────────────────────
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
 
-// ── Layout ────────────────────────────────────────────────────────────────────
-const COL_W  = 148;
-const ROW_H  = 115;
-const PAD_X  = 80;
-const PAD_Y  = 70;
-const COLS   = 8;   // columns 0..7
-const ROWS   = 3;   // rows    0..2
+const COL_W = 148, ROW_H = 115, PAD_X = 80, PAD_Y = 62;
+const COLS = 8, ROWS = 3;
+const RAW_W = PAD_X * 2 + (COLS - 1) * COL_W;
+const RAW_H = PAD_Y * 2 + (ROWS - 1) * ROW_H;
 
-const RAW_W  = PAD_X * 2 + (COLS - 1) * COL_W;
-const RAW_H  = PAD_Y * 2 + (ROWS - 1) * ROW_H;
-
-const SCALE  = Math.min(1, (window.innerWidth * 0.96) / RAW_W);
+const SCALE = Math.min(1, window.innerWidth * 0.96 / RAW_W);
 canvas.width  = Math.round(RAW_W * SCALE);
 canvas.height = Math.round(RAW_H * SCALE);
 ctx.scale(SCALE, SCALE);
 
-// ── Data ─────────────────────────────────────────────────────────────────────
+// ── State definitions ─────────────────────────────────────────────────────────
+const S = {
+  IDLE:'idle', PENDING:'pending', RUNNING:'running',
+  COMPLETED:'completed', FAILED:'failed',
+  ROLLING_BACK:'rolling_back', ROLLED_BACK:'rolled_back',
+};
+
+const STATE_META = {
+  idle:         { color:'#374151', bg:'#0d1520', label:'Idle',         icon:'·',  action: null },
+  pending:      { color:'#3b82f6', bg:'#0f2040', label:'Pending',      icon:'▶',  action:'run' },
+  running:      { color:'#60a5fa', bg:'#0f2040', label:'Running',      icon:'⟳',  action: null },
+  completed:    { color:'#4ade80', bg:'#0a2318', label:'Completed',    icon:'✓',  action:'rollback' },
+  failed:       { color:'#f87171', bg:'#2a0e0e', label:'Failed',       icon:'✕',  action:'retry' },
+  rolling_back: { color:'#f97316', bg:'#2a1608', label:'Rolling Back', icon:'↩',  action: null },
+  rolled_back:  { color:'#818cf8', bg:'#131228', label:'Rolled Back',  icon:'⏮',  action:'re-run' },
+};
+
+// ── Node & edge data ──────────────────────────────────────────────────────────
 const nodes = [
-  { id:  0, label: "Order Placed",    col: 0, row: 1,    color: "#4ade80" },
-  { id:  1, label: "Payment Init",    col: 1, row: 0,    color: "#60a5fa" },
-  { id:  2, label: "Inventory Check", col: 1, row: 2,    color: "#c084fc" },
-  { id:  3, label: "Payment Auth",    col: 2, row: 0,    color: "#38bdf8" },
-  { id:  4, label: "Fraud Check",     col: 2, row: 1,    color: "#fb923c" },
-  { id:  5, label: "Reserve Stock",   col: 2, row: 2,    color: "#a78bfa" },
-  { id:  6, label: "Auth Verified",   col: 3, row: 0.5,  color: "#22d3ee" },
-  { id:  7, label: "Stock Reserved",  col: 3, row: 2,    color: "#818cf8" },
-  { id:  8, label: "Order Confirmed", col: 4, row: 1.25, color: "#f472b6" },
-  { id:  9, label: "Fulfillment",     col: 5, row: 0.5,  color: "#fb923c" },
-  { id: 10, label: "Notification",    col: 5, row: 2,    color: "#94a3b8" },
-  { id: 11, label: "Shipped",         col: 6, row: 0,    color: "#f97316" },
-  { id: 12, label: "Tracking",        col: 6, row: 1,    color: "#fbbf24" },
-  { id: 13, label: "Delivered",       col: 7, row: 0.5,  color: "#4ade80" },
+  { id: 0,  label:'Order Placed',    col:0, row:1,    identity:'#4ade80' },
+  { id: 1,  label:'Payment Init',    col:1, row:0,    identity:'#60a5fa' },
+  { id: 2,  label:'Inventory Check', col:1, row:2,    identity:'#c084fc' },
+  { id: 3,  label:'Payment Auth',    col:2, row:0,    identity:'#38bdf8' },
+  { id: 4,  label:'Fraud Check',     col:2, row:1,    identity:'#fb923c' },
+  { id: 5,  label:'Reserve Stock',   col:2, row:2,    identity:'#a78bfa' },
+  { id: 6,  label:'Auth Verified',   col:3, row:0.5,  identity:'#22d3ee' },
+  { id: 7,  label:'Stock Reserved',  col:3, row:2,    identity:'#818cf8' },
+  { id: 8,  label:'Order Confirmed', col:4, row:1.25, identity:'#f472b6' },
+  { id: 9,  label:'Fulfillment',     col:5, row:0.5,  identity:'#fb923c' },
+  { id:10,  label:'Notification',    col:5, row:2,    identity:'#94a3b8' },
+  { id:11,  label:'Shipped',         col:6, row:0,    identity:'#f97316' },
+  { id:12,  label:'Tracking',        col:6, row:1,    identity:'#fbbf24' },
+  { id:13,  label:'Delivered',       col:7, row:0.5,  identity:'#4ade80' },
 ];
 
 const edges = [
-  { from:  0, to:  1 },   // Order → Payment Init          (split)
-  { from:  0, to:  2 },   // Order → Inventory Check       (split)
-  { from:  1, to:  3 },   // Payment Init → Payment Auth
-  { from:  1, to:  4 },   // Payment Init → Fraud Check    (split)
-  { from:  2, to:  5 },   // Inventory → Reserve Stock
-  { from:  3, to:  6 },   // Payment Auth → Auth Verified  (merge in)
-  { from:  4, to:  6 },   // Fraud Check → Auth Verified   (merge in)
-  { from:  4, to:  8 },   // Fraud Check → Order Confirmed (also feeds directly)
-  { from:  5, to:  7 },   // Reserve → Stock Reserved
-  { from:  6, to:  8 },   // Auth Verified → Order Confirmed (merge in)
-  { from:  7, to:  8 },   // Stock Reserved → Order Confirmed (merge in)
-  { from:  8, to:  9 },   // Order Confirmed → Fulfillment (split)
-  { from:  8, to: 10 },   // Order Confirmed → Notification (split)
-  { from:  9, to: 11 },   // Fulfillment → Shipped         (split)
-  { from:  9, to: 12 },   // Fulfillment → Tracking        (split)
-  { from: 10, to: 12 },   // Notification → Tracking       (merge in)
-  { from: 11, to: 13 },   // Shipped → Delivered           (merge in)
-  { from: 12, to: 13 },   // Tracking → Delivered          (merge in)
+  {from:0,to:1}, {from:0,to:2},
+  {from:1,to:3}, {from:1,to:4},
+  {from:2,to:5},
+  {from:3,to:6}, {from:4,to:6}, {from:4,to:8},
+  {from:5,to:7},
+  {from:6,to:8}, {from:7,to:8},
+  {from:8,to:9}, {from:8,to:10},
+  {from:9,to:11}, {from:9,to:12},
+  {from:10,to:12},
+  {from:11,to:13}, {from:12,to:13},
 ];
 
-// ── Lookup helpers ────────────────────────────────────────────────────────────
+// ── State initialisation ──────────────────────────────────────────────────────
 const nodeMap = {};
-nodes.forEach(n => nodeMap[n.id] = n);
+nodes.forEach(n => {
+  nodeMap[n.id] = n;
+  n.state      = S.IDLE;
+  n.pulsePhase = Math.random() * Math.PI * 2;
+  n.spinAngle  = 0;
+});
 
+const inDeg = {}, outDeg = {};
+nodes.forEach(n => { inDeg[n.id] = 0; outDeg[n.id] = 0; });
+edges.forEach(e => { outDeg[e.from]++; inDeg[e.to]++; });
+
+// ── Workflow logic ────────────────────────────────────────────────────────────
+function getDeps(id)      { return edges.filter(e => e.to   === id).map(e => e.from); }
+function getChildren(id)  { return edges.filter(e => e.from === id).map(e => e.to);   }
+
+function updatePending() {
+  nodes.forEach(n => {
+    if (n.state !== S.IDLE) return;
+    const deps = getDeps(n.id);
+    if (deps.every(d => nodeMap[d].state === S.COMPLETED)) n.state = S.PENDING;
+  });
+}
+
+function runNode(id, onDone) {
+  const n = nodeMap[id];
+  if (n.state !== S.PENDING && n.state !== S.ROLLED_BACK) return;
+  const deps = getDeps(id);
+  if (!deps.every(d => nodeMap[d].state === S.COMPLETED)) {
+    logEvent(`${n.label}: deps not satisfied`, 'warn');
+    return;
+  }
+  n.state = S.RUNNING;
+  logEvent(`${n.label} → running`, 'info');
+  const ms = 700 + Math.random() * 700;
+  setTimeout(() => {
+    if (n.state !== S.RUNNING) return; // may have been failed externally
+    n.state = S.COMPLETED;
+    logEvent(`${n.label} → completed`, 'success');
+    updatePending();
+    if (onDone) onDone();
+  }, ms);
+}
+
+function failNode(id) {
+  const n = nodeMap[id];
+  if (n.state !== S.RUNNING) return;
+  n.state = S.FAILED;
+  logEvent(`${n.label} → FAILED`, 'error');
+}
+
+// All nodes reachable downstream from startId (inclusive)
+function downstreamOf(startId) {
+  const visited = new Set([startId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    edges.forEach(e => {
+      if (visited.has(e.from) && !visited.has(e.to)) { visited.add(e.to); changed = true; }
+    });
+  }
+  return [...visited];
+}
+
+// Post-order DFS on the subgraph = downstream-first order for rollback
+function rollbackOrder(ids) {
+  const inSet = new Set(ids);
+  const result = [], seen = new Set();
+  function dfs(id) {
+    if (seen.has(id)) return;
+    seen.add(id);
+    edges.filter(e => e.from === id && inSet.has(e.to)).forEach(e => dfs(e.to));
+    result.push(id);
+  }
+  ids.forEach(dfs);
+  return result; // downstream nodes appear before upstream
+}
+
+// Sequential rollback queue
+let rbQueue = [];
+
+function initiateRollback(startId) {
+  const n = nodeMap[startId];
+  if (n.state !== S.COMPLETED && n.state !== S.FAILED) return;
+
+  const ds = downstreamOf(startId);
+  const toRb = rollbackOrder(ds).filter(id => {
+    const s = nodeMap[id].state;
+    return s === S.COMPLETED || s === S.FAILED || s === S.RUNNING;
+  });
+
+  if (toRb.length === 0) return;
+  logEvent(`Rollback from "${n.label}"`, 'rollback');
+
+  rbQueue.push(...toRb);
+  if (rbQueue.length === toRb.length) processRbQueue(); // first batch
+}
+
+function processRbQueue() {
+  if (rbQueue.length === 0) return;
+  const id = rbQueue.shift();
+  const n  = nodeMap[id];
+  n.state  = S.ROLLING_BACK;
+  logEvent(`${n.label} → rolling back`, 'rollback');
+
+  // Spawn reverse particles on edges leading INTO this node
+  edges.filter(e => e.to === id).forEach(e => spawnRevParticles(e));
+
+  setTimeout(() => {
+    if (n.state === S.ROLLING_BACK) {
+      n.state = S.ROLLED_BACK;
+      logEvent(`${n.label} → rolled back`, 'info');
+    }
+    setTimeout(processRbQueue, 180);
+  }, 680);
+}
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+const fwdParticles = [];
+const revParticles = [];
+
+edges.forEach((edge, ei) => {
+  const n = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < n; i++) {
+    fwdParticles.push({
+      edgeIdx: ei,
+      t:     Math.random(),
+      speed: 0.0028 + Math.random() * 0.002,
+      color: nodeMap[edge.from].identity,
+    });
+  }
+});
+
+function spawnRevParticles(edge) {
+  const ei = edges.indexOf(edge);
+  if (ei < 0) return;
+  for (let i = 0; i < 5; i++) {
+    revParticles.push({
+      edgeIdx: ei,
+      t:     0.9 + Math.random() * 0.1,
+      speed: -(0.006 + Math.random() * 0.004),
+      life:  1.0,
+      decay: 0.007 + Math.random() * 0.005,
+    });
+  }
+}
+
+// ── Auto-run ──────────────────────────────────────────────────────────────────
+let autoRunning = false;
+
+function runAll() {
+  if (autoRunning) return;
+  updatePending();
+  if (!nodes.some(n => n.state === S.PENDING)) {
+    logEvent('No pending nodes to run', 'warn');
+    return;
+  }
+  autoRunning = true;
+
+  function tick() {
+    if (!autoRunning) return;
+    updatePending();
+    const pending = nodes.filter(n => n.state === S.PENDING);
+    pending.forEach(n => runNode(n.id));
+
+    const active = nodes.some(n => n.state === S.RUNNING || n.state === S.PENDING);
+    if (!active) {
+      autoRunning = false;
+      if (nodes.every(n => n.state === S.COMPLETED)) {
+        logEvent('Pipeline complete!', 'success');
+      } else {
+        logEvent('Pipeline halted — manual attention needed', 'warn');
+      }
+      return;
+    }
+    setTimeout(tick, 300);
+  }
+  tick();
+}
+
+// ── Position & bezier helpers ─────────────────────────────────────────────────
 function pos(node) {
-  return {
-    x: PAD_X + node.col * COL_W,
-    y: PAD_Y + node.row * ROW_H,
-  };
+  return { x: PAD_X + node.col * COL_W, y: PAD_Y + node.row * ROW_H };
 }
 
-// ── Bezier helpers ────────────────────────────────────────────────────────────
-function controlPoints(from, to) {
-  const fp = pos(from), tp = pos(to);
-  const dx = tp.x - fp.x;
-  return {
-    fp, tp,
-    cp1: { x: fp.x + dx * 0.5, y: fp.y },
-    cp2: { x: tp.x - dx * 0.5, y: tp.y },
-  };
+function cpts(from, to) {
+  const fp = pos(from), tp = pos(to), dx = tp.x - fp.x;
+  return { fp, tp, cp1:{x: fp.x + dx*0.5, y: fp.y}, cp2:{x: tp.x - dx*0.5, y: tp.y} };
 }
 
-function bezierAt(fp, cp1, cp2, tp, t) {
-  const m = 1 - t;
+function bzAt(fp, cp1, cp2, tp, t) {
+  const m = 1-t;
   return {
     x: m*m*m*fp.x + 3*m*m*t*cp1.x + 3*m*t*t*cp2.x + t*t*t*tp.x,
     y: m*m*m*fp.y + 3*m*m*t*cp1.y + 3*m*t*t*cp2.y + t*t*t*tp.y,
   };
 }
 
-// ── Rounded rect path ─────────────────────────────────────────────────────────
+// ── Draw helpers ──────────────────────────────────────────────────────────────
 function rrPath(x, y, w, h, r) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y,     x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x,     y + h, x,     y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x,     y,     x + r, y);
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);    ctx.quadraticCurveTo(x, y, x+r, y);
   ctx.closePath();
 }
 
-// ── Arrowhead ────────────────────────────────────────────────────────────────
-function drawArrow(x, y, angle, color) {
+function arrowTip(x, y, angle, color) {
   const s = 7;
   ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
+  ctx.translate(x, y); ctx.rotate(angle);
   ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(-s, -s * 0.45);
-  ctx.lineTo(-s,  s * 0.45);
-  ctx.closePath();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-s,-s*.45); ctx.lineTo(-s,s*.45); ctx.closePath();
   ctx.fill();
   ctx.restore();
 }
 
-// ── Particles ────────────────────────────────────────────────────────────────
-const particles = [];
-edges.forEach((edge, ei) => {
-  const count = 2 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      edgeIdx: ei,
-      t:     Math.random(),
-      speed: 0.0028 + Math.random() * 0.0022,
-      color: nodeMap[edge.from].color,
-    });
-  }
-});
+// ── Edge colour based on workflow state ───────────────────────────────────────
+function edgeStateColor(edge) {
+  const fs = nodeMap[edge.from].state, ts = nodeMap[edge.to].state;
+  if (fs === S.ROLLING_BACK || ts === S.ROLLING_BACK) return '#f97316cc';
+  if (fs === S.ROLLED_BACK  && ts === S.ROLLED_BACK)  return '#818cf844';
+  if (fs === S.FAILED       || ts === S.FAILED)        return '#f8717188';
+  if (fs === S.COMPLETED    && ts === S.COMPLETED)     return '#4ade8066';
+  if ((fs === S.COMPLETED || fs === S.RUNNING) && ts === S.RUNNING)  return '#60a5fa88';
+  if (fs === S.COMPLETED    && ts === S.PENDING)       return '#3b82f666';
+  return null;
+}
 
 // ── Hover state ───────────────────────────────────────────────────────────────
 let hoveredNode = null;
+let globalTime  = 0;
 
-function edgeIsHighlighted(edge) {
+function isEdgeHi(edge) {
   if (!hoveredNode) return true;
   return edge.from === hoveredNode.id || edge.to === hoveredNode.id;
 }
-
-function nodeIsHighlighted(nodeId) {
+function isNodeHi(id) {
   if (!hoveredNode) return true;
-  if (nodeId === hoveredNode.id) return true;
-  return edges.some(e =>
-    (e.from === hoveredNode.id && e.to === nodeId) ||
-    (e.to === hoveredNode.id && e.from === nodeId)
-  );
+  if (id === hoveredNode.id) return true;
+  return edges.some(e => (e.from === hoveredNode.id && e.to === id) ||
+                         (e.to   === hoveredNode.id && e.from === id));
 }
 
-// ── Draw functions ────────────────────────────────────────────────────────────
-function drawEdge(edge) {
-  const from = nodeMap[edge.from];
-  const to   = nodeMap[edge.to];
-  const hi   = edgeIsHighlighted(edge);
-  const { fp, tp, cp1, cp2 } = controlPoints(from, to);
+// ── Drawing ───────────────────────────────────────────────────────────────────
+function drawEdges() {
+  edges.forEach(edge => {
+    const from = nodeMap[edge.from], to = nodeMap[edge.to];
+    const hi   = isEdgeHi(edge);
+    const { fp, tp, cp1, cp2 } = cpts(from, to);
 
-  const grad = ctx.createLinearGradient(fp.x, fp.y, tp.x, tp.y);
-  grad.addColorStop(0, from.color);
-  grad.addColorStop(1, to.color);
+    const stateCol = edgeStateColor(edge);
+    let stroke;
+    if (stateCol) {
+      stroke = stateCol;
+    } else {
+      const g = ctx.createLinearGradient(fp.x, fp.y, tp.x, tp.y);
+      g.addColorStop(0, from.identity + '33');
+      g.addColorStop(1, to.identity   + '33');
+      stroke = g;
+    }
 
-  ctx.save();
-  ctx.globalAlpha = hi ? (hoveredNode ? 0.85 : 0.45) : 0.08;
-  ctx.strokeStyle = grad;
-  ctx.lineWidth   = hi && hoveredNode ? 2.2 : 1.6;
-  ctx.lineCap     = 'round';
-  ctx.beginPath();
-  ctx.moveTo(fp.x, fp.y);
-  ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, tp.x, tp.y);
-  ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha = hi ? 1 : 0.12;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth   = hi && hoveredNode ? 2.2 : 1.7;
+    ctx.lineCap     = 'round';
+    ctx.beginPath();
+    ctx.moveTo(fp.x, fp.y);
+    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, tp.x, tp.y);
+    ctx.stroke();
 
-  // Arrow near destination
-  const pa = bezierAt(fp, cp1, cp2, tp, 0.91);
-  const pb = bezierAt(fp, cp1, cp2, tp, 0.99);
-  const angle = Math.atan2(pb.y - pa.y, pb.x - pa.x);
-  ctx.globalAlpha = hi ? (hoveredNode ? 1 : 0.5) : 0.08;
-  drawArrow(tp.x, tp.y, angle, to.color);
-  ctx.restore();
+    const near = bzAt(fp, cp1, cp2, tp, 0.9);
+    arrowTip(tp.x, tp.y, Math.atan2(tp.y - near.y, tp.x - near.x),
+             stateCol || (to.identity + 'aa'));
+    ctx.restore();
+  });
 }
 
-function drawParticle(p) {
-  const edge = edges[p.edgeIdx];
-  const from = nodeMap[edge.from];
-  const to   = nodeMap[edge.to];
-  const hi   = edgeIsHighlighted(edge);
-  const { fp, tp, cp1, cp2 } = controlPoints(from, to);
-  const pt = bezierAt(fp, cp1, cp2, tp, p.t);
+function drawParticles() {
+  // Forward
+  fwdParticles.forEach(p => {
+    const edge = edges[p.edgeIdx];
+    const from = nodeMap[edge.from], to = nodeMap[edge.to];
+    const fs = from.state, ts = to.state;
+    if (fs === S.IDLE) return;
+    if (fs === S.ROLLED_BACK && ts === S.ROLLED_BACK) return;
+    const hi = isEdgeHi(edge);
 
-  ctx.save();
-  ctx.globalAlpha = hi ? 0.9 : 0.05;
-  ctx.shadowColor = p.color;
-  ctx.shadowBlur  = 10;
-  ctx.fillStyle   = p.color;
-  ctx.beginPath();
-  ctx.arc(pt.x, pt.y, hi && hoveredNode ? 3.5 : 2.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+    const { fp, tp, cp1, cp2 } = cpts(from, to);
+    const pt = bzAt(fp, cp1, cp2, tp, p.t);
+
+    ctx.save();
+    ctx.globalAlpha = hi ? 0.85 : 0.08;
+    ctx.shadowColor = p.color; ctx.shadowBlur = 8;
+    ctx.fillStyle   = p.color;
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  // Reverse (rollback)
+  revParticles.forEach(p => {
+    if (p.life <= 0) return;
+    const edge = edges[p.edgeIdx];
+    const { fp, tp, cp1, cp2 } = cpts(nodeMap[edge.from], nodeMap[edge.to]);
+    const t  = Math.max(0, Math.min(1, p.t));
+    const pt = bzAt(fp, cp1, cp2, tp, t);
+    ctx.save();
+    ctx.globalAlpha  = p.life * 0.9;
+    ctx.shadowColor  = '#f97316'; ctx.shadowBlur = 12;
+    ctx.fillStyle    = '#fb923c';
+    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
 }
 
 function drawNode(node) {
   const { x, y } = pos(node);
-  const nw = 106, nh = 34, r = 8;
+  const nw = 120, nh = 36, r = 8;
+  const meta  = STATE_META[node.state];
   const isHov = hoveredNode && hoveredNode.id === node.id;
-  const hi    = nodeIsHighlighted(node.id);
+  const hi    = isNodeHi(node.id);
 
-  ctx.save();
-  ctx.globalAlpha = hi ? 1 : 0.2;
-
-  if (isHov) {
-    ctx.shadowColor = node.color;
-    ctx.shadowBlur  = 22;
+  let pulse = 0;
+  if (node.state === S.RUNNING || node.state === S.ROLLING_BACK || node.state === S.PENDING) {
+    const freq = node.state === S.ROLLING_BACK ? 6 : node.state === S.RUNNING ? 4 : 2;
+    pulse = Math.sin(globalTime * freq + node.pulsePhase) * 0.5 + 0.5;
   }
 
-  // Card fill
-  ctx.fillStyle = '#111827';
+  ctx.save();
+  ctx.globalAlpha = hi ? 1 : 0.18;
+
+  if (isHov || pulse > 0.3) {
+    ctx.shadowColor = meta.color;
+    ctx.shadowBlur  = isHov ? 22 : 10 * pulse;
+  }
+
+  // Card
+  ctx.fillStyle = meta.bg;
   rrPath(x - nw/2, y - nh/2, nw, nh, r);
   ctx.fill();
 
-  // Border
-  ctx.strokeStyle = node.color;
-  ctx.lineWidth   = isHov ? 2 : 1.5;
+  // Border — animated width for active states
+  ctx.strokeStyle = meta.color;
+  ctx.lineWidth   = isHov ? 2.5 : (pulse > 0.6 ? 2 : 1.5);
   rrPath(x - nw/2, y - nh/2, nw, nh, r);
   ctx.stroke();
 
-  // Inner highlight stripe (top edge glow)
-  if (isHov) {
-    const shine = ctx.createLinearGradient(x - nw/2, y - nh/2, x + nw/2, y - nh/2);
-    shine.addColorStop(0,   'rgba(255,255,255,0)');
-    shine.addColorStop(0.5, 'rgba(255,255,255,0.08)');
-    shine.addColorStop(1,   'rgba(255,255,255,0)');
-    ctx.fillStyle = shine;
-    rrPath(x - nw/2, y - nh/2, nw, nh, r);
-    ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Spinner arc for running / rolling_back
+  const spinX = x - nw/2 + 16;
+  if (node.state === S.RUNNING || node.state === S.ROLLING_BACK) {
+    const dir = node.state === S.ROLLING_BACK ? -1 : 1;
+    ctx.save();
+    ctx.translate(spinX, y); ctx.rotate(dir * node.spinAngle);
+    ctx.strokeStyle = meta.color; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(0, 0, 5.5, 0, Math.PI * 1.65);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    // Icon
+    ctx.fillStyle    = meta.color;
+    ctx.font         = '11px system-ui';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(meta.icon, spinX, y);
   }
 
   // Label
-  ctx.shadowBlur     = 0;
-  ctx.fillStyle      = isHov ? '#fff' : '#cbd5e1';
-  ctx.font           = `${isHov ? 600 : 400} 10.5px system-ui`;
-  ctx.textAlign      = 'center';
-  ctx.textBaseline   = 'middle';
-  ctx.fillText(node.label, x, y);
-
-  ctx.restore();
-}
-
-// ── Merge / split indicators ──────────────────────────────────────────────────
-// Find nodes with multiple incoming or multiple outgoing edges
-const inDeg  = {};
-const outDeg = {};
-nodes.forEach(n => { inDeg[n.id] = 0; outDeg[n.id] = 0; });
-edges.forEach(e => { outDeg[e.from]++; inDeg[e.to]++; });
-
-function drawBadge(node) {
-  const isMerge = inDeg[node.id]  > 1;
-  const isSplit = outDeg[node.id] > 1;
-  if (!isMerge && !isSplit) return;
-
-  const { x, y } = pos(node);
-  const nw = 106, nh = 34;
-  const hi = nodeIsHighlighted(node.id);
-
-  ctx.save();
-  ctx.globalAlpha = hi ? 1 : 0.2;
-
-  if (isMerge && isSplit) {
-    drawBadgePill(x - nw/2 - 30, y, '⟦M/S⟧', '#f472b6');
-  } else if (isMerge) {
-    drawBadgePill(x - nw/2 - 26, y, '⟦M⟧', '#22d3ee');
-  } else {
-    drawBadgePill(x + nw/2 + 26, y, '⟦S⟧', '#fb923c');
+  ctx.fillStyle    = isHov ? '#f8fafc' : '#a0b0c0';
+  ctx.font         = `${isHov ? 600 : 400} 10px system-ui`;
+  ctx.textAlign    = 'left';
+  ctx.textBaseline = 'middle';
+  // Clip long labels
+  const maxW = nw - 16 - 20;
+  let label = node.label;
+  ctx.font = `${isHov ? 600 : 400} 10px system-ui`;
+  while (label.length > 3 && ctx.measureText(label).width > maxW) {
+    label = label.slice(0, -1);
   }
+  if (label !== node.label) label = node.label.slice(0, label.length - 1) + '…';
+  ctx.fillText(label, x - nw/2 + 28, y);
 
   ctx.restore();
 }
 
-function drawBadgePill(cx, cy, label, color) {
-  ctx.font          = 'bold 8.5px system-ui';
-  ctx.textAlign     = 'center';
-  ctx.textBaseline  = 'middle';
-  ctx.fillStyle     = color + '22';
-  const tw = ctx.measureText(label).width + 8;
-  rrPath(cx - tw/2, cy - 8, tw, 16, 4);
-  ctx.fill();
-  ctx.strokeStyle   = color + '66';
-  ctx.lineWidth     = 0.8;
-  rrPath(cx - tw/2, cy - 8, tw, 16, 4);
-  ctx.stroke();
-  ctx.fillStyle     = color;
-  ctx.fillText(label, cx, cy);
+function drawBadges() {
+  nodes.forEach(node => {
+    const isMerge = inDeg[node.id]  > 1;
+    const isSplit = outDeg[node.id] > 1;
+    if (!isMerge && !isSplit) return;
+
+    const { x, y } = pos(node);
+    const nw = 120;
+    const hi = isNodeHi(node.id);
+
+    ctx.save();
+    ctx.globalAlpha = hi ? 0.75 : 0.12;
+
+    const text  = isMerge && isSplit ? 'M·S' : isMerge ? 'M' : 'S';
+    const color = isMerge && isSplit ? '#f472b6' : isMerge ? '#22d3ee' : '#fb923c';
+    const bx    = x + nw/2 + 7;
+
+    ctx.font         = 'bold 8px system-ui';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(text).width + 9;
+    ctx.fillStyle   = color + '20';
+    rrPath(bx - tw/2, y - 8, tw, 16, 3); ctx.fill();
+    ctx.strokeStyle = color + '77';
+    ctx.lineWidth   = 0.8;
+    rrPath(bx - tw/2, y - 8, tw, 16, 3); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillText(text, bx, y);
+
+    ctx.restore();
+  });
 }
 
-// ── Grid lines (subtle) ───────────────────────────────────────────────────────
+function drawColumnLabels() {
+  const phases = ['Initiation','Dispatch','Processing','Verification','Approval','Fulfilment','Delivery','Completion'];
+  ctx.save();
+  ctx.font         = '9px system-ui';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillStyle    = '#1e3a5f';
+  for (let c = 0; c < COLS; c++) {
+    ctx.fillText(phases[c], PAD_X + c * COL_W, 6);
+  }
+  ctx.restore();
+}
+
 function drawGrid() {
   ctx.save();
   ctx.strokeStyle = 'rgba(255,255,255,0.025)';
   ctx.lineWidth   = 1;
-  ctx.setLineDash([4, 8]);
+  ctx.setLineDash([3, 9]);
   for (let c = 0; c < COLS; c++) {
     const x = PAD_X + c * COL_W;
-    ctx.beginPath();
-    ctx.moveTo(x, 20);
-    ctx.lineTo(x, RAW_H - 20);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, 20); ctx.lineTo(x, RAW_H - 14); ctx.stroke();
   }
   ctx.restore();
 }
 
-// ── Main render loop ─────────────────────────────────────────────────────────
+// ── Update loop ───────────────────────────────────────────────────────────────
+function update(dt) {
+  globalTime += dt;
+
+  fwdParticles.forEach(p => { p.t += p.speed; if (p.t > 1) p.t -= 1; });
+
+  for (let i = revParticles.length - 1; i >= 0; i--) {
+    const p = revParticles[i];
+    p.t    += p.speed;
+    p.life -= p.decay;
+    if (p.life <= 0 || p.t < 0) revParticles.splice(i, 1);
+  }
+
+  nodes.forEach(n => {
+    if (n.state === S.RUNNING)      n.spinAngle += 0.09;
+    if (n.state === S.ROLLING_BACK) n.spinAngle += 0.13;
+  });
+}
+
 function draw() {
   ctx.clearRect(0, 0, RAW_W, RAW_H);
 
-  // Background gradient
-  const bg = ctx.createRadialGradient(RAW_W/2, RAW_H/2, 0, RAW_W/2, RAW_H/2, RAW_W * 0.7);
-  bg.addColorStop(0, '#0f1d2e');
-  bg.addColorStop(1, '#070d15');
+  const bg = ctx.createRadialGradient(RAW_W/2, RAW_H/2, 0, RAW_W/2, RAW_H/2, RAW_W * 0.65);
+  bg.addColorStop(0, '#0e1c2d');
+  bg.addColorStop(1, '#060c14');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, RAW_W, RAW_H);
 
   drawGrid();
-  edges.forEach(drawEdge);
-  particles.forEach(drawParticle);
+  drawColumnLabels();
+  drawEdges();
+  drawParticles();
   nodes.forEach(drawNode);
-  nodes.forEach(drawBadge);
+  drawBadges();
 }
 
-function update() {
-  particles.forEach(p => {
-    p.t += p.speed;
-    if (p.t > 1) p.t -= 1;
-  });
-}
-
-function loop() {
-  update();
+let lastTs = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTs) / 1000, 0.1);
+  lastTs = ts;
+  update(dt);
   draw();
   requestAnimationFrame(loop);
 }
 
-// ── Mouse interaction ────────────────────────────────────────────────────────
+// ── Mouse interaction ─────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function nodeAt(mx, my) {
+  for (const n of nodes) {
+    const { x, y } = pos(n);
+    if (Math.abs(mx - x) < 62 && Math.abs(my - y) < 22) return n;
+  }
+  return null;
+}
+
 canvas.addEventListener('mousemove', e => {
   const rect = canvas.getBoundingClientRect();
   const mx = (e.clientX - rect.left) / SCALE;
   const my = (e.clientY - rect.top)  / SCALE;
+  const found = nodeAt(mx, my);
 
-  let found = null;
-  for (const node of nodes) {
-    const { x, y } = pos(node);
-    if (Math.abs(mx - x) < 56 && Math.abs(my - y) < 20) {
-      found = node;
-      break;
-    }
-  }
   hoveredNode = found;
   canvas.style.cursor = found ? 'pointer' : 'default';
+
+  if (found) {
+    const meta = STATE_META[found.state];
+    const actionLabel = {
+      'run':      'Click to run',
+      'rollback': 'Click to rollback cascade',
+      'retry':    'Click to retry',
+      're-run':   'Click to re-run',
+    }[meta.action] || '';
+
+    tooltip.innerHTML = `
+      <div class="tt-name">${found.label}</div>
+      <div class="tt-state" style="color:${meta.color}">${meta.icon}&nbsp;${meta.label}</div>
+      ${actionLabel ? `<div class="tt-action">${actionLabel}</div>` : ''}
+    `;
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top  = (e.clientY - 8)  + 'px';
+    tooltip.classList.remove('hidden');
+  } else {
+    tooltip.classList.add('hidden');
+  }
 });
 
-canvas.addEventListener('mouseleave', () => { hoveredNode = null; });
+canvas.addEventListener('mouseleave', () => {
+  hoveredNode = null;
+  tooltip.classList.add('hidden');
+});
 
-loop();
+canvas.addEventListener('click', () => {
+  if (!hoveredNode) return;
+  const action = STATE_META[hoveredNode.state].action;
+  if (action === 'run' || action === 'retry' || action === 're-run') runNode(hoveredNode.id);
+  else if (action === 'rollback') initiateRollback(hoveredNode.id);
+});
+
+// ── Button handlers ───────────────────────────────────────────────────────────
+document.getElementById('btn-step').addEventListener('click', () => {
+  updatePending();
+  const pending = nodes.filter(n => n.state === S.PENDING);
+  if (!pending.length) { logEvent('No pending nodes', 'warn'); return; }
+  const next = pending.reduce((a, b) => a.col < b.col ? a : b);
+  runNode(next.id);
+});
+
+document.getElementById('btn-run-all').addEventListener('click', runAll);
+
+document.getElementById('btn-fault').addEventListener('click', () => {
+  const running = nodes.filter(n => n.state === S.RUNNING);
+  if (!running.length) { logEvent('No running node to fault', 'warn'); return; }
+  failNode(running[Math.floor(Math.random() * running.length)].id);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  autoRunning = false;
+  rbQueue.length = 0;
+  revParticles.length = 0;
+  nodes.forEach(n => { n.state = S.IDLE; n.spinAngle = 0; });
+  updatePending();
+  logEvent('Workflow reset', 'info');
+});
+
+// ── Event log ─────────────────────────────────────────────────────────────────
+const logEl  = document.getElementById('log-entries');
+const logBuf = [];
+const MAX_LOG = 7;
+
+function logEvent(msg, type = 'info') {
+  const t = new Date().toLocaleTimeString([], {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logBuf.unshift({ msg, type, t });
+  if (logBuf.length > MAX_LOG) logBuf.pop();
+  logEl.innerHTML = logBuf.map(e =>
+    `<div class="log-entry log-${e.type}"><span class="log-t">${e.t}</span><span>${e.msg}</span></div>`
+  ).join('');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+updatePending();
+logEvent('Workflow ready — Run All or click a node', 'info');
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
