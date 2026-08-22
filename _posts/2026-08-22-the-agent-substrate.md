@@ -5,21 +5,19 @@ date: 2026-08-22 12:00:00 -0000
 categories: coding ai
 ---
 
-Just as I'm about to publish this post, I notice this thought-provoking piece about harness evolution [16], that I just have to include, I'll come back to it later.
-
-Recently, there is an emphasis on the mechanisms that sit between a generative AI model and the users: the harness. Harness engineering is a thing [1]. Also, a lot of focus is being put on *code* as the dominating tool and output modality. If we put in the additional idea that the generated code is more of a substrate for achieving an outcome, instead of being the output itself, then we have the ingredients of a recent extensive survey paper "Code as Agent Harness" [2].
+At this time, all mechanisms that sit between a generative AI model and the user are called: the harness. Harness engineering is a thing [1]. Also, a lot of focus is being put on *code* as the dominating tool and output modality. If we put in the additional idea that the generated code is more of a substrate for achieving an outcome, instead of being the output itself, then we have the ingredients of a recent extensive survey paper "Code as Agent Harness" [2].
 
 One particular direction is to give the harness an interactive, REPL-like, code runtime. The symbolic world model is then the instantiated runtime objects in that runtime. For example, the world model is the set of Python runtime objects in the case where the runtime is an IPython kernel. The harness is in control of the execution (runtime state) of the code, not only the source code itself.
 
 An early paper in this direction is WorldCoder [3], which builds on earlier work on program synthesis, e.g., DreamCoder [4]. Another project with a similar publication date is CodeAct [5]. As for startup projects building on these ideas, both Symbolica/Agentica [6] and Marimo [7] are spearheads.
 
-Over the summer weeks of 2026, we have seen several new projects in this "REPL-harness" direction.
+Over the summer weeks of 2026, several new projects in this "REPL-harness" direction are announced:
 
-- DreamTeam [8] focuses on having specific roles within the harness that contribute to updating the code that is the world model. NOOA [9] is a scaled down version of DreamTeam. Both are open source.
+- DreamTeam [8] focuses on having several specific roles within the harness, contributing to updating the code world model. NOOA [9] is a scaled down version of DreamTeam. Both are open source.
 
 - Schema-harness [10] is focused on separating the state variables and the state transition logic in the code world model. We have not yet seen open source for this project.
 
-- Prime Agent [11] is more of a general purpose agent, based on the pi-harness, using an IPython kernel as the runtime, and building on RLM [12] and Continual Harness [13]. It is open source.
+- Prime Agent [11] is more of a general purpose agent, based on the pi harness, using an IPython kernel as the runtime, and building on RLM [12] and Continual Harness [13]. It is open source.
 
 - Tycho [14] is an academic project that has a Moore machine as a representation for the harness side of the agent. It is also open source.
 
@@ -29,11 +27,13 @@ Comparing these projects would be interesting, for example: how is the code exec
 
 Also, there is a taxonomy question here: Is it useful to include all aspects of this executable code world model in the term harness? Most of the projects use the term harness that way.
 
-A proposal would be to distinguish between: 1) the Substrate: the parts that form the representation of the world model (getting updated as part of the session) and 2) the Harness: the interface between the AI model and the world model. The Substrate can contain more than code, including any kind of data, retrieval techniques, memory, ontologies, skills, and specifications. The Harness is the immutable control point for security, cost control, model routing etc.
+A different terminology would be to distinguish between: 1) the Substrate: the parts that form the representation of the world model (getting updated as part of the session) and 2) the Harness: the interface between the AI model and the world model. The Substrate can contain more than code, including any kind of data, retrieval techniques, memory, ontologies, skills, and specifications. The Harness is the immutable control point for security, cost control, model routing etc.
 
 Instead of defining the Model, Harness, and the Substrate by exactly what they contain, it could be useful to see them more along a temporal axis. The Model is what gets updated at training time, the Substrate is what gets updated at runtime, and the Harness is what gets updated at build time. The Harness then gets a specific role as the part that is not touchable by the Model, which is essential for a robust security level.
 
-Having code as the world model has an impact on how we should think about explainability and interpretability. Code, being symbolic, is easier to analyze, test, perform formal methods on, compared to the latent space of the Model.
+Having code as the world model has an impact on how we should think about explainability and interpretability. Code, being symbolic, is easier to analyze, test, and perform formal methods on, compared to the latent space of the Model.
+
+Just as I'm about to publish this post, I notice this thought-provoking piece about harness evolution [16], that I just have to include. It emphasizes the outgoing direction from the harness towards the human user. I'll come back to it later.
 
 
 ### References
