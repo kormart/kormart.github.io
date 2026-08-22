@@ -5,8 +5,18 @@
   box-sizing: border-box;
 }
 
+/* Scales up only the regional-indicator characters that make up flag emoji
+   (🇸🇪 🇬🇧), so the flags in post titles read a bit larger than the text
+   around them. Listed first in a font stack, it applies to nothing else. */
+@font-face {
+  font-family: "FlagEmoji";
+  src: local("Apple Color Emoji"), local("Segoe UI Emoji"), local("Noto Color Emoji");
+  unicode-range: U+1F1E6-1F1FF;
+  size-adjust: 135%;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "FlagEmoji", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.6;
   color: #333;
   max-width: 800px;
@@ -19,6 +29,7 @@ header h1 {
   font-size: 2rem;
   margin-bottom: 1rem;
   color: #000;
+  font-family: monospace;
 }
 
 header hr {
@@ -31,6 +42,12 @@ header hr {
 h2 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
+}
+
+/* The "Posts" heading on the home page. A post's own title is inside
+   <article class="post">, so the child combinator leaves it alone. */
+main > h2 {
+  font-family: monospace;
 }
 
 .post-list {
@@ -50,7 +67,7 @@ h2 {
 .post-list a {
   color: #0066cc;
   text-decoration: none;
-  font-family: monospace;
+  font-family: "FlagEmoji", monospace;
 }
 
 .post-list a:hover {
