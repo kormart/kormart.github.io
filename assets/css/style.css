@@ -50,6 +50,7 @@ h2 {
 .post-list a {
   color: #0066cc;
   text-decoration: none;
+  font-family: monospace;
 }
 
 .post-list a:hover {
