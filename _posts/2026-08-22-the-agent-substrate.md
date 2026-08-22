@@ -7,7 +7,7 @@ categories: coding ai
 
 Just as I'm about to publish this post, I notice this thought-provoking piece about harness evolution [16], that I just have to include, I'll come back to it later.
 
-Recently, there is an emphasis on the mechanisms that sit between a generative AI model and the users: the harness. Harness engineering is a thing [1]. Also, a lot of focus is being put on *code* as the dominating tool and output modality. If we put in the additional idea that the generated code is more of a substrate for achieving an outcome, instead of being the output itself, then we have the ingedients of a recent extensive survey paper "Code as Agent Harness" [2].
+Recently, there is an emphasis on the mechanisms that sit between a generative AI model and the users: the harness. Harness engineering is a thing [1]. Also, a lot of focus is being put on *code* as the dominating tool and output modality. If we put in the additional idea that the generated code is more of a substrate for achieving an outcome, instead of being the output itself, then we have the ingredients of a recent extensive survey paper "Code as Agent Harness" [2].
 
 One particular direction is to give the harness an interactive, REPL-like, code runtime. The symbolic world model is then the instantiated runtime objects in that runtime. For example, the world model is the set of Python runtime objects in the case where the runtime is an IPython kernel. The harness is in control of the execution (runtime state) of the code, not only the source code itself.
 
@@ -25,11 +25,11 @@ Over the summer weeks of 2026, we have seen several new projects in this "REPL-h
 
 The ARC-AGI-3 challenge [15] is a target benchmark for many of these projects. ARC-AGI-3 puts focus on agents solving for an outcome by interacting with a graphical interface. All these code executing harnesses get scores that are significantly higher compared to the bare models. It seems that the principle of having code as the world model is what makes the difference.
 
-Comparing these projects would be interesting, for example: how is the code executed and how are code updates constructed. And also to benchmark on more practical tasksets than ARG-AGI-3.
+Comparing these projects would be interesting, for example: how is the code executed and how are code updates constructed. And also to benchmark on more practical tasksets than ARC-AGI-3.
 
 Also, there is a taxonomy question here: Is it useful to include all aspects of this executable code world model in the term harness? Most of the projects use the term harness that way.
 
-A proposal would be to distinguish between: 1) the Substrate: the parts that is the representation of the world model (getting updated as part of the session) and 2) the Harness: the interface between the AI model and the world model. The Substrate can contain more than code, including any kind of data, retrieval techniques, memory, ontologies, skills, and specifications. The Harness is the immutable control point for security, cost control, model routing etc.
+A proposal would be to distinguish between: 1) the Substrate: the parts that form the representation of the world model (getting updated as part of the session) and 2) the Harness: the interface between the AI model and the world model. The Substrate can contain more than code, including any kind of data, retrieval techniques, memory, ontologies, skills, and specifications. The Harness is the immutable control point for security, cost control, model routing etc.
 
 Instead of defining the Model, Harness, and the Substrate by exactly what they contain, it could be useful to see them more along a temporal axis. The Model is what gets updated at training time, the Substrate is what gets updated at runtime, and the Harness is what gets updated at build time. The Harness then gets a specific role as the part that is not touchable by the Model, which is essential for a robust security level.
 
@@ -40,7 +40,7 @@ Having code as the world model has an impact on how we should think about explai
 
 [1] Lilian Weng, [Harness Engineering for Self-Improvement](https://lilianweng.github.io/posts/2026-07-04-harness/), 4 July 2026.
 
-[2] "Code as Agent Harness: Toward Executable, Verifiable, and Stateful Agent Systems". arXiv:2605.18747.
+[2] [Code as Agent Harness: Toward Executable, Verifiable, and Stateful Agent Systems](https://arxiv.org/abs/2605.18747). arXiv:2605.18747.
 
 [3] Hao Tang, Darren Key, Kevin Ellis, [WorldCoder, a Model-Based LLM Agent: Building World Models by Writing Code and Interacting with the Environment](https://arxiv.org/abs/2402.12275), NeurIPS 2024. arXiv:2402.12275.
 
