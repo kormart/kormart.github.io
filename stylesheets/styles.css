@@ -253,3 +253,12 @@ footer {
     color:#444;
   }
 }
+
+/* Custom styles to make post titles use monospace font like dates */
+.post-link {
+  font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal, monospace;
+}
+
+.post-list .post-link {
+  font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal, monospace;
+}
